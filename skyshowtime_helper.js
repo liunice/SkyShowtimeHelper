@@ -44,11 +44,12 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
 
             $.log('playing episode: ' + root.id)
             notify(SCRIPT_NAME, '正在播放剧集', `[${series_name}] S${season}E${episode}`)
+
+            // create subtitle.conf if it's not there
+            createConfFile()
         }
         else {
-            $.setdata('', `series_name@${SCRIPT_NAME}`)
-            $.setdata('', `season_no@${SCRIPT_NAME}`)
-            $.setdata('', `ep_no@${SCRIPT_NAME}`)
+            clearPlaying()
         }
 
         let newHeaders = $response.headers
@@ -100,7 +101,7 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
         if (m) {
             body = body.replace(RegExp(String.raw`#EXT-X-STREAM-INF:FRAME-RATE=[\d\.]+,BANDWIDTH=(?!${maxrate}).*?\s+.+`, 'g'), '')
             $.log(body)
-            // notify(SCRIPT_NAME, `已强制${m[2]}`, `BANDWIDTH=${numberWithCommas(m[1])},CODECS="${m[3]}"`)
+            notify(SCRIPT_NAME, `已强制${m[2]}`, `BANDWIDTH=${numberWithCommas(m[1])},CODECS="${m[3]}"`)
         }
 
         $.done({ body: body })
@@ -127,11 +128,31 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
     // https://ovp.skyshowtime.com/video/playouts/vod
     // INVALID IP => HTTP ERROR 403
 
+    function clearPlaying() {
+        $.setdata('', `series_name@${SCRIPT_NAME}`)
+        $.setdata('', `season_no@${SCRIPT_NAME}`)
+        $.setdata('', `ep_no@${SCRIPT_NAME}`)
+    }
+
     function notify(title, subtitle, message) {
         const enabled = getScriptConfig('notify') || 'true'
         if (enabled.toLowerCase() == 'true') {
             $.msg(title, subtitle, message)
         }
+    }
+
+    function createConfFile() {
+        const series_name = $.getdata(`series_name@${SCRIPT_NAME}`)
+        const season = $.getdata(`season_no@${SCRIPT_NAME}`)
+        if (!series_name) return
+
+        const path = `${SUBTITLES_DIR}/${series_name}/S${season}/subtitle.conf`
+        if (checkICloudExists(path)) return
+
+        const content = `offset=0
+subsyncer.enabled=false
+        `
+        writeICloud(path, content)
     }
 
     function getSubtitleConfig(key) {
@@ -141,13 +162,13 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
         const confBody = readICloud(`${SUBTITLES_DIR}/${series_name}/S${season}/subtitle.conf`)
         if (!confBody) return null
 
-        const m = new RegExp(`^S${season}E${episode}:${key}=(.+)`, 'im').exec(confBody)
+        const m = new RegExp(String.raw`^\s*S${season}E${episode}:${key}\s*=\s*(.+)`, 'im').exec(confBody)
         if (m) {
-            return m[1]
+            return m[1].trim()
         }
         else {
-            const m0 = new RegExp(`^${key}=(.+)`, 'im').exec(confBody)
-            return m0 ? m0[1] : null
+            const m0 = new RegExp(String.raw`^\s*${key}\s*=\s*(.+)`, 'im').exec(confBody)
+            return m0 && m0[1].trim()
         }
     }
 
@@ -155,11 +176,8 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
         const confBody = readICloud(`${SUBTITLES_DIR}/helper.conf`)
         if (!confBody) return null
 
-        const m = new RegExp(`^${key}=(.+)`, 'im').exec(confBody)
-        if (m) {
-            return m[1]
-        }
-        return null
+        const m = new RegExp(String.raw`^\s*${key}\s*=\s*(.+)`, 'im').exec(confBody)
+        return m && m[1].trim()
     }
 
     function numberWithCommas(x) {
@@ -195,8 +213,11 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
         const season = $.getdata(`season_no@${SCRIPT_NAME}`)
         const episode = $.getdata(`ep_no@${SCRIPT_NAME}`)
         const path = `${SUBTITLES_DIR}/${series_name}/S${season}/S${season}E${episode}.srt`
-        $.log(path)
-        return checkICloudExists(path)
+        const found = checkICloudExists(path)
+        if (!found) {
+            $.log(`subtitle not exist: ${path}`)
+        }
+        return found
     }
 
     function getSubtitle() {
@@ -217,6 +238,15 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
             const content = new TextDecoder().decode(data)
             return content
         }
+    }
+
+    function writeICloud(path, content) {
+        const buffer = new TextEncoder().encode(content)
+        if (!$iCloud.writeFile(buffer, path)) {
+            console.log(`iCloud file write failed, path: ${path}`)
+            return false
+        }
+        return true
     }
 
     function checkICloudExists(path) {
