@@ -31,6 +31,7 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
     const $ = Env("skyshowtime_helper.js")
     const SCRIPT_NAME = 'SkyShowtime'
     const SUBTITLES_DIR = 'Subtitles'
+    const PLATFORM_NAME = 'skyshowtime'
 
     if (/\/adapter\-calypso\/v\d+\/query\/node\/([\w\-]+)\?represent=\(next/.test($request.url)) {
         const root = JSON.parse($response.body)
@@ -46,7 +47,9 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
             notify(SCRIPT_NAME, '正在播放剧集', `[${series_name}] S${season}E${episode}`)
 
             // create subtitle.conf if it's not there
-            createConfFile()
+            if (getScriptConfig('auto.create') !== 'false') {
+                createConfFile()
+            }
         }
         else {
             clearPlaying()
@@ -80,15 +83,7 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
         }
         $.log(vttBody)
 
-        // return response
-        let newHeaders = $request.headers
-        newHeaders['Content-Type'] = 'application/vnd.apple.mpegurl'
-        if ($.isQuanX()) {
-            $.done({ body: vttBody, headers: newHeaders, status: 'HTTP/1.1 200 OK' })
-        }
-        else {
-            $.done({ body: vttBody, headers: newHeaders, status: 200 })
-        }
+        $.done({ body: vttBody })
     }
     else if (/\.pcdn\d+\.cssott\.com\/SST\/.*?\/mpeg_cbcs\/master_manifest_.*?\.m3u8/.test($request.url)) {
         let body = $response.body

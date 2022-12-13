@@ -41,10 +41,10 @@ hostname = ovp.skyshowtime.com
   打开iOS的``文件``App，在 ``iCloud云盘/Quantumult X/Data``下新建``Subtitles``文件夹，如果没有``Data``文件夹请先新建, 注意字母大小写。  
   **【文件放置】**  
   我们以SkyShowtime上的剧集 ``Penny Dreadful``为例。  
-  1. 先开启插件。然后在SkyShowtime上播放``Penny Dreadful``第一集，等待顶部出现``正在播放剧集``的通知，注意观察通知框上的剧集名称，应为``Penny Dreadful``
+  1. 先开启插件。然后在SkyShowtime上播放``Penny Dreadful``第一季第一集，等待顶部出现``正在播放剧集``的通知，注意观察通知框上的剧集名称，应为``Penny Dreadful``
   2. 浏览到``iCloud云盘/Quantumult X/Data/Subtitles``目录，你会发现插件已经自动建立了一个新文件夹名为``Penny Dreadful``，再往下还会有一个文件夹名为``S01``。如果没有请自行建立。
   3. 如果你观看的是第1季第1集，请将srt字幕文件复制到``Penny Dreadful/S01``目录下，并重命名为``S01E01.srt``，**注意字母S和E均为大写，且后面的数字固定为两位数。**  
-  **如果你在Mac上复制文件，请在iPhone上打开``文件``App并确认修改已云同步。**
+  **如果你在Mac上复制文件，请在iOS上打开``文件``App并确认修改已云同步。**
 
 - ### 字幕时间轴的微调
   同样以上面的``Penny Dreadful``为例。如果你觉得字幕提前了，想将所有字幕往后调2秒，步骤如下：  
@@ -71,11 +71,23 @@ hostname = *.pcdn*.cssott.com
 ## 插件通知的禁用
 
 本插件默认开启通知。如需禁用，请按以下步骤操作：  
-    1. 在``iCloud云盘/Quantumult X/Data/Subtitles``目录下新建文件``helper.conf``  
-    2. 在``helper.conf``中添加设置项：``notify=false``  
+1. 在``iCloud云盘/Quantumult X/Data/Subtitles``目录下新建文件``helper.conf``
+2. 在``helper.conf``中添加设置项：``notify=false``  
+
 **注意**  
-    1. 一般不建议禁用通知。禁用通知后你将不知道插件的所有功能是否在正常运作。  
-    2. 如果你在Mac上修改配置，请在iPhone上打开``文件``App并确认修改已云同步。
+1. 一般不建议禁用通知。禁用通知后你将不知道插件的所有功能是否在正常运作。
+2. 如果你在Mac上修改配置，请在iOS上打开``文件``App并确认修改已云同步。
+
+## 自动创建文件夹的禁用
+
+本插件默认为每一部剧集的每一季自动创建两级文件夹，同时生成一个默认的``subtitle.conf``文件。  
+如需禁用，请按以下步骤操作：  
+1. 在``iCloud云盘/Quantumult X/Data/Subtitles``目录下新建文件``helper.conf``
+2. 在``helper.conf``中添加设置项：``auto.create=false``  
+
+**注意**  
+1. 一般不建议禁用。禁用后你每次都需要自己创建``subtitle.conf``以实现时间轴微调功能。
+2. 如果你在Mac上修改配置，请在iOS上打开``文件``App并确认修改已云同步。
 
 ## 注意
 
