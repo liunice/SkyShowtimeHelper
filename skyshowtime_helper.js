@@ -2,7 +2,7 @@
 @author: liunice
 @decription: SkyShowtime iOS 界面全英文化、外挂字幕和强制1080p插件
 @created: 2022-12-01
-@updated: 2022-12-02
+@updated: 2023-09-02
 */
 
 /*
@@ -12,12 +12,9 @@
 TG官方群: https://t.me/+W6aJJ-p9Ir1hNmY1
 
 QuanX用法：
-hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
+hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com, mobile.clients.skyshowtime.com
 
 以下3个功能请按需启用：
-
-# 界面全英文
-^https:\/\/ovp\.skyshowtime\.com\/ls\/localisation$ url script-response-body https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
 
 # 外挂srt字幕 (外挂字幕方法请参见github主页)
 ^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/query\/node/.*?\?represent=\(next url script-response-body https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
@@ -25,42 +22,60 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
 
 # 强制1080p
 ^https:\/\/.*?\.pcdn\d+\.cssott\.com\/SST\/.*?\/mpeg_cbcs\/master_manifest_.*?\.m3u8 url script-response-body https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+
+# 界面全英文
+^https:\/\/ovp\.skyshowtime\.com\/ls\/localisation$ url script-response-body https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/query\/node/.*?\?represent=\(items\) url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/query\/menu$ url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/labels$ url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/mobile\.clients\.skyshowtime\.com\/bff\/sections\/v\d+\/personalised\? url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/mobile\.clients\.skyshowtime\.com\/bff\/sections\/v\d+\?template=sections& url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/query\/node\/(provider_series_id|provider_variant_id)\/ url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
 */
 
 (async () => {
     const $ = Env("skyshowtime_helper.js")
     const SCRIPT_NAME = 'SkyShowtime'
     const SUBTITLES_DIR = 'Subtitles'
+    const FN_SUB_SYNCER_DB = 'sub_syncer.db'
     const PLATFORM_NAME = 'skyshowtime'
 
     if (/\/adapter\-calypso\/v\d+\/query\/node\/([\w\-]+)\?represent=\(next/.test($request.url)) {
-        const root = JSON.parse($response.body)
-        if (root['attributes']['seriesName']) {
-            const series_name = root['attributes']['seriesName']
-            const season = root['attributes']['seasonNumber'].toString().padStart(2, '0')
-            const episode = root['attributes']['episodeNumber'].toString().padStart(2, '0')
-            $.setdata(series_name, `series_name@${SCRIPT_NAME}`)
-            $.setdata(season, `season_no@${SCRIPT_NAME}`)
-            $.setdata(episode, `ep_no@${SCRIPT_NAME}`)
+        if ($response) {
+            const root = JSON.parse($response.body)
+            if (root['attributes']['seriesName']) {
+                const series_name = root['attributes']['seriesName']
+                const season = root['attributes']['seasonNumber'].toString().padStart(2, '0')
+                const episode = root['attributes']['episodeNumber'].toString().padStart(2, '0')
+                $.setdata(series_name, `series_name@${SCRIPT_NAME}`)
+                $.setdata(season, `season_no@${SCRIPT_NAME}`)
+                $.setdata(episode, `ep_no@${SCRIPT_NAME}`)
 
-            $.log('playing episode: ' + root.id)
-            notify(SCRIPT_NAME, '正在播放剧集', `[${series_name}] S${season}E${episode}`)
+                $.log('playing episode: ' + root.id)
+                notify(SCRIPT_NAME, '正在播放剧集', `[${series_name}] S${season}E${episode}`)
 
-            // create subtitle.conf if it's not there
-            if (getScriptConfig('auto.create') !== 'false') {
-                createConfFile()
+                // create subtitle.conf if it's not there
+                if (getScriptConfig('auto.create') !== 'false') {
+                    createConfFile()
+                }
             }
+            else {
+                clearPlaying()
+            }
+
+            const headers = $response.headers
+            delete headers['ETag']
+            delete headers['Cache-Control']
+            delete headers['Expires']
+            delete headers['Date']
+            $.done({ headers, body: $response.body })
         }
         else {
-            clearPlaying()
+            const headers = $request.headers
+            headers['X-SkyOTT-Language'] = 'en-US'
+            delete headers['If-None-Match']
+            $.done({ headers })
         }
-
-        let newHeaders = $response.headers
-        delete newHeaders['ETag']
-        delete newHeaders['Cache-Control']
-        delete newHeaders['Expires']
-        delete newHeaders['Date']
-        $.done({ headers: newHeaders, body: $response.body })
     }
     else if (/\.pcdn\d+\.cssott\.com\/SST\/.*?\.webvtt$/.test($request.url)) {
         if (!checkSubtitleExists()) {
@@ -99,29 +114,31 @@ hostname = ovp.skyshowtime.com, atom.skyshowtime.com, *.pcdn*.cssott.com
             notify(SCRIPT_NAME, `已强制${m[2]}`, `BANDWIDTH=${numberWithCommas(m[1])},CODECS="${m[3]}"`)
         }
 
+        // save manifest for sub syncer
+        if (getSubtitleConfig('subsyncer.enabled') == 'true') {
+            writeSubSyncerDB($request.url)
+        }
+
         $.done({ body: body })
     }
     else if (/ovp\.skyshowtime\.com\/ls\/localisation$/.test($request.url)) {
         const root = JSON.parse($response.body)
         root['headers']['x-skyott-language'] = 'en-US'
-        // root['headers']['x-skyott-territory'] = 'PT'
-        // root['headers']['x-skyott-activeterritory'] = 'NL'
-        // root['territoryAvailabilityStatus'] = 'AVAILABLE'
         $.done({ body: JSON.stringify(root) })
     }
-    // else if (/ovp\.skyshowtime\.com\/auth\/throttled\/tokens$/.test($request.url)) {
-    //     const newHeaders = $request.headers
-    //     newHeaders['X-SkyOTT-Territory'] = 'PT'
-    //     newHeaders['X-SkyOTT-ActiveTerritory'] = 'NL'
-    //     $.done({ headers: newHeaders })
-    // }
-    // else if (/ovp\.skyshowtime\.com\/auth\/users\/me$/.test($request.url)) {
+    else if (/\/adapter\-calypso\/v\d+\/query\/node\/([\w\-]+)\?represent=\(items\)/.test($request.url) || /\/adapter\-calypso\/v\d+\/query\/menu$/.test($request.url) || /\/adapter\-calypso\/v\d+\/labels$/.test($request.url) || /\/bff\/sections\/v1\/personalised/.test($request.url) || /\/bff\/sections\/v\d+\?template=sections&/.test($request.url) || /\/adapter\-calypso\/v\d+\/query\/node\/(provider_series_id|provider_variant_id)\//.test($request.url)) {
+        const headers = $request.headers
+        headers['X-SkyOTT-Language'] = 'en-US'
+        delete headers['If-None-Match']
+        $.done({ headers })
+    }
+    // else if (/\/bff\/personas\/v\d+\/[\-\w]+\?skipPinValidation=true$/.test($request.url)) {
     //     const root = JSON.parse($response.body)
-    //     root['currentLocationTerritory'] = 'NL'
+    //     root['persona']['controls']['maturityRatingLabel'] = 'Adult'
+    //     root['persona']['displayLanguage'] = 'en-US'
+    //     root['persona']['displayLanguageLabel'] = 'English'
     //     $.done({ body: JSON.stringify(root) })
     // }
-    // https://ovp.skyshowtime.com/video/playouts/vod
-    // INVALID IP => HTTP ERROR 403
 
     function clearPlaying() {
         $.setdata('', `series_name@${SCRIPT_NAME}`)
@@ -173,6 +190,49 @@ subsyncer.enabled=false
 
         const m = new RegExp(String.raw`^\s*${key}\s*=\s*(.+)`, 'im').exec(confBody)
         return m && m[1].trim()
+    }
+
+    function writeSubSyncerDB(manifest_url) {
+        const series_name = $.getdata(`series_name@${SCRIPT_NAME}`)
+        const season = $.getdata(`season_no@${SCRIPT_NAME}`)
+        const episode = $.getdata(`ep_no@${SCRIPT_NAME}`)
+        if (!series_name) return
+
+        const path = `${SUBTITLES_DIR}/${series_name}/${FN_SUB_SYNCER_DB}`
+
+        // read
+        let root
+        try {
+            const body = readICloud(path)
+            if (body) {
+                root = JSON.parse(body)
+            }
+        }
+        catch (e) {
+            $.log(e)
+        }
+        if (!root) {
+            root = {
+                'manifests': {},
+                'platform': PLATFORM_NAME
+            }
+        }
+        else if (root['platform'] && root['platform'] != PLATFORM_NAME) {
+            // 不允许不同平台的数据混在一起
+            return
+        }
+        else if (root['manifests'][`S${season}E${episode}`]) {
+            // 不进行覆盖，防止错误数据写入导致数据混乱
+            return
+        }
+
+        // update
+        root['manifests'][`S${season}E${episode}`] = manifest_url
+
+        // write
+        if (writeICloud(path, JSON.stringify(root))) {
+            notify(SCRIPT_NAME, '播放记录已写入本地数据库', `[${series_name}] S${season}E${episode}`)
+        }
     }
 
     function numberWithCommas(x) {

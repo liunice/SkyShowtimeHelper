@@ -4,6 +4,8 @@ SkyShowtime iOS 界面全英文化、外挂字幕和强制1080p插件
 
 **本插件与DualSubs字幕插件可能存在冲突，请按需启用。**
 
+推荐和我开发的[AutoSubSyncer](https://github.com/liunice/AutoSubSyncer)一起使用。AutoSubSyncer运行在电脑端，可从任意一个ass双语字幕轻松生成一个自动调轴的srt字幕。
+
 ## All-in-One配置
 
 在QuanX引用以下重写资源：
@@ -18,10 +20,16 @@ https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/quanx.conf
 单独开启界面全英文化功能的配置如下：
 
 ```
-hostname = ovp.skyshowtime.com
+hostname = ovp.skyshowtime.com, atom.skyshowtime.com, mobile.clients.skyshowtime.com
 
-# SkyShowtime界面全英文化 ovp.skyshowtime.com
+# SkyShowtime界面全英文化 ovp.skyshowtime.com, atom.skyshowtime.com, mobile.clients.skyshowtime.com
 ^https:\/\/ovp\.skyshowtime\.com\/ls\/localisation$ url script-response-body https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/query\/node/.*?\?represent=\(items\) url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/query\/menu$ url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/labels$ url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/mobile\.clients\.skyshowtime\.com\/bff\/sections\/v\d+\/personalised\? url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/mobile\.clients\.skyshowtime\.com\/bff\/sections\/v\d+\?template=sections& url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
+^https:\/\/atom\.skyshowtime\.com\/adapter\-calypso\/v\d+\/query\/node\/(provider_series_id|provider_variant_id)\/ url script-request-header https://raw.githubusercontent.com/liunice/SkyShowtimeHelper/master/skyshowtime_helper.js
 ```
 
 ## 外挂字幕
