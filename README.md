@@ -99,7 +99,7 @@ hostname = *.pcdn*.cssott.com
 
 ## 注意
 
-    - 本插件暂只支持QuanX，后续会支持Surge
+    - 本插件暂只支持QuanX
     - 本插件暂只支持电视剧，不支持电影
     - 仅支持srt格式的字幕
     - 字幕文件建议为utf-8编码，否则可能无法解析
